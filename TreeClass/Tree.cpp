@@ -116,31 +116,36 @@ void Tree::handleVarList(TreeNode *varListNode) {
 }
 
 
+void Tree::generateCode(TreeNode *nodePtr) {
+	if(!nodePtr) {
+		return;
+	}
 
+	switch(nodePtr->label) {
+		case VARS:
+			handleVars(nodePtr);
+			break;
+		case READ:
+			handleVarUsage(nodePtr);
+			break;
+		case COND:
+			handleVarUsage(nodePtr);
+			break;
+		case LOOP:
+			handleVarUsage(nodePtr);
+			break;
+		case ASSIGN:
+			handleVarUsage(nodePtr);
+			break;
+		case R:
+			handleVarUsage(nodePtr);
+			break;
+		default:
+			break;
+	}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	for(int i = 0; i < 3; i++) {
+		processNode(nodePtr->nodeArr[i]);
+	}
+}
 
