@@ -1,0 +1,7 @@
+*.o
+P2
+someFile.fs25s1
+*.inorder
+*.preorder
+*.postorder
+/Tests
