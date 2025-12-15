@@ -521,7 +521,12 @@ TreeNode* Parser::relational() {
 		relationalNode->tokenArr[0] = tk;
 		tk = scanner.scanToken();
 		return relationalNode;
-	} else if(tk.tokenID == ASSIGNOPTK) {		//SHOULD I ADD THE TOKEN TO THE NODE HERE????
+	} else if(tk.tokenID == SEMICOLON) {
+		relationalNode->tokenArr[0] = tk;
+		tk = scanner.scanToken();
+		return relationalNode;
+	}
+	else if(tk.tokenID == ASSIGNOPTK) {		//SHOULD I ADD THE TOKEN TO THE NODE HERE????
 		relationalNode->tokenArr[0] = tk;
 		tk = scanner.scanToken();
 

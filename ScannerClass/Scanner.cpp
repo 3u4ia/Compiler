@@ -81,9 +81,9 @@ int Scanner::filter() {
 			return DELIM;
 		case ']': 
 			return DELIM;
-		case ';': 
-			return DELIM;
 		case ':': 
+			return DELIM;
+		case ';': 
 			return OPERATOR;
 		case '+': 
 			return OPERATOR;
@@ -186,8 +186,8 @@ static TokenID getDelimTokenID(char *lexeme) {
 	else if (strcmp(lexeme, "]") == 0) {
 		return RGHTSQREDELIM;
 	}
-	else if (strcmp(lexeme, ";") == 0) {
-		return SEMICOLON;
+	else if (strcmp(lexeme, ":") == 0) {
+		return DELOPTK;
 	}
 	else {
 		printf("Error no matching delim found for :%s\n", lexeme);
@@ -232,8 +232,8 @@ static TokenID checkIfValidOperator(char *lexeme, int lineNumber) {
 	else if (strcmp(lexeme, "=") == 0) {
 		return ASSIGNOPTK;
 	}
-	else if (strcmp(lexeme, ":") == 0) {
-		return DELOPTK;
+	else if (strcmp(lexeme, ";") == 0) { // changed this to ; instead of :
+		return SEMICOLON; // Changed this to SEMICOLON instead of deloptk
 	}
 	else {
 		printf("Invalid Operator found: %s on line %d", lexeme, lineNumber);
