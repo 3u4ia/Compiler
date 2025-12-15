@@ -32,8 +32,9 @@ void Parser::parse() {
 	else {
 		printf("Success in parsing!\n");
 	}
-	treeObj.displayPreOrder();
-	treeObj.processNode();
+	//treeObj.displayPreOrder();  //IS THIS NEEDED??
+	treeObj.processNode(); // statis semantic checker
+	treeObj.generateCode();
 	return;
 }
 

@@ -1,5 +1,10 @@
 #include "Tree.h"
 
+typedef enum {VAR, LABEL} nameType;
+static unsigned int LabelCntr = 0;
+static unsigned int VarCntr = 0;
+static char Name[20]; /* for creation of unique names*/
+
 void Tree::fileInitHelper(FILE **filePtr, const char *extension) {
 	size_t newSize = strlen(baseFileName) + strlen(extension);
 	char *fullFileName = (char *)malloc(newSize + 1);
@@ -117,35 +122,126 @@ void Tree::handleVarList(TreeNode *varListNode) {
 
 
 void Tree::generateCode(TreeNode *nodePtr) {
+	char argR[20]; // local storage for temp or label
 	if(!nodePtr) {
 		return;
 	}
 
 	switch(nodePtr->label) {
-		case VARS:
-			handleVars(nodePtr);
-			break;
 		case READ:
-			handleVarUsage(nodePtr);
+			fprintf(asmFile, "READ %s\n", nodePtr->tokenArr[0].lexeme);
+			break;
+		case PRINT:
+			generateCode(nodePtr->nodeArr[0]);
+			argR = newName(VAR);
+			fprintf(asmFile, "STORE t%s\n", argR);
+			fprintf(asmFile, "WRITE t%s\n", argR);
 			break;
 		case COND:
-			handleVarUsage(nodePtr);
-			break;
-		case LOOP:
-			handleVarUsage(nodePtr);
+			generateCode(nodePtr->nodeArr[1]);
+			argR = newName(VAR);
+			fprintf(asmFile, "\tSTORE \t%s\n", argR);
+			generateCode(nodePtr->nodeArr[0]);
+			fprintf(asmFile, "SUB %s\n");	
+			char *compOp = getRelationalOp(nodePtr);
+			
+			//cond [ identifier <relational> <exp> ] <stat>
 			break;
 		case ASSIGN:
-			handleVarUsage(nodePtr);
-			break;
-		case R:
-			handleVarUsage(nodePtr);
+			generateCode(nodePtr->nodeArr[0]);
+			fprintf(out, "\tSTORE \t%s\n", nodePtr->tokenArr[0].lexeme);
 			break;
 		default:
+			printf("Visiting %s\n", nonTerminalNames[nodePtr->label]);
 			break;
 	}
 
 	for(int i = 0; i < 3; i++) {
-		processNode(nodePtr->nodeArr[i]);
+		generateCode(nodePtr->nodeArr[i]);
 	}
 }
+
+char *getRelationalOp(TreeNode *nodePtr) {
+	TreeNode *relationalNode = nodePtr->nodeArr[0];
+	char *s = malloc(10 * sizeof(char));
+	Token *firstToken = relationalNode->tokenArr[0];
+
+	// There is only one production that has two tokens for a relational and that's = =
+	if(firstToken.tokenID == ASSIGNOPTK && relationalNode->tokenArr[1].tokenID == ASSIGNOPTK) {
+		strcpy(s, "BRZERO");
+		return;
+	}
+	else if (firstToken.tokenID == LEOPTK) {
+		strcpy(s, "BRZNEG");
+		return;
+	}
+	else if (firstToken.tokenID == GEOPTK) {
+		strcpy(s, "BRZPOS");
+		return;
+	} else if (firstToken.tokenID == 
+}
+
+
+
+void Tree::handleDef(TreeNode *varNode) {
+	/*if(varNode->tokenArr[0].tokenID == IDTK) {
+		apiObj.insert(varNode->tokenArr[0].lexeme);
+	}
+	*/
+	TreeNode *varListNode = varNode->nodeArr[0];
+	
+	handleDefVarList(varListNode);	
+}
+
+
+void Tree::handleDefVarList(TreeNode *varListNode) {
+	if(!varListNode) {
+		return;
+	}
+	if(varListNode->tokenArr[0].lineNum == -1) {
+		return;
+	}
+	else {
+		handleDefVarList(varListNode->nodeArr[0]);
+	}
+
+}
+
+
+
+static char *newName(nameType what) {
+	if (what == VAR) // creating new temporary
+		sprintf(Name, "t%d", VarCntr++); /* generate a new label as T0, T1, etc*/
+	else // creating new label
+		sprintf(Name, "L%d", LabelCntr++); /* new labels as L0, L1, etc */
+	return(Name);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

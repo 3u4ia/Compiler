@@ -14,14 +14,20 @@ class Tree {
 		STAPI apiObj;
 		const char *baseFileName;
 		FILE *preOrderFile = NULL;
+		FILE *asmFile = NULL;
 		void displayPreOrder(TreeNode *, size_t) const;
 		int smallChange = 0;
 		void fileInitHelper(FILE **, const char *);
 		void processNode(TreeNode *);
+		void generateCode(TreeNode *);
 
 		void handleVarUsage( TreeNode *);
 		void handleVars(TreeNode *);
 		void handleVarList(TreeNode *);
+
+		void handleDef(TreeNode *);
+		void handleDefVarList(TreeNode *);
+		
 
 		
 	public:
@@ -34,6 +40,7 @@ class Tree {
 			}
 			
 			fileInitHelper(&preOrderFile, ".preorder");
+			fileInitHelper(&asmFile, ".asm");
 		}
 		Tree(char *fileName, TreeNode *root) {
 			this->root = root;
@@ -44,6 +51,7 @@ class Tree {
 			}
 
 			fileInitHelper(&preOrderFile, ".preorder");
+			fileInitHelper(&asmFile, ".asm");
 		}
 		~Tree() {
 			if(preOrderFile) {
@@ -60,6 +68,11 @@ class Tree {
 			apiObj.checkVars();
 			apiObj.displayVarCount();
 			
+		}
+
+		void generateCode() {
+			generateCode(root);
+			fprintf(asmFile, "STOP\n");
 		}
 
 		
