@@ -5,3 +5,5 @@ someFile.fs25s1
 *.preorder
 *.postorder
 /Tests
+*.fs25s1
+statSem

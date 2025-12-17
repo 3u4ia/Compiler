@@ -20,8 +20,8 @@ class Tree {
 		const char *baseFileName;
 		FILE *preOrderFile = NULL;
 		FILE *asmFile = NULL;
-		vector<string> tempVarVec;
-		vector<string> tempLabelVec;
+		vector<char *> tempVarVec;
+		vector<char *> tempLabelVec;
 
 		void displayPreOrder(TreeNode *, size_t) const;
 		int smallChange = 0;
@@ -36,6 +36,7 @@ class Tree {
 		void handleDef(TreeNode *);
 		void handleDefVarList(TreeNode *);
 
+		int newName(nameType);
 
 		void printRelationalOp(TreeNode *, char *);
 		void mHandler(TreeNode *);
