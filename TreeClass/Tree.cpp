@@ -132,7 +132,7 @@ void Tree::generateCode(TreeNode *nodePtr) {
 	switch(nodePtr->label) {
 		case READ:
 			fprintf(asmFile, "READ %s\n", nodePtr->tokenArr[0].lexeme);
-			break;
+			return;
 		case PRINT:
 			generateCode(nodePtr->nodeArr[0]);
 			nameIndex = newName(VAR);
@@ -146,35 +146,23 @@ void Tree::generateCode(TreeNode *nodePtr) {
 		//	break;
 		case ASSIGN:// DONE
 			generateCode(nodePtr->nodeArr[0]);
-			fprintf(asmFile, "\tSTORE \t%s\n", nodePtr->tokenArr[0].lexeme);
-			break;
+			fprintf(asmFile, "STORE \t%s\n", nodePtr->tokenArr[0].lexeme);
+			return;
 		case EXP:
 			expHandler(nodePtr);
-			break;
+			return;
 		case M:
 			mHandler(nodePtr);
-			break;
+			return;
 		case N:
 			nHandler(nodePtr);
-			break;
+			return;
 		case R:
 			rHandler(nodePtr);
-			break;
+			return;
 		case COND:
-			generateCode(nodePtr->nodeArr[1]);
-			nameIndex = newName(VAR);
-			fprintf(asmFile, "\tSTORE \t%s\n", tempVarVec.at(nameIndex));
-			generateCode(nodePtr->nodeArr[0]);
-			fprintf(asmFile, "SUB %s\n", tempVarVec.at(nameIndex));
-			printRelationalOp(nodePtr, tempVarVec.at(nameIndex)); // maybe need to set argR to a temp variable so that the label can be placed after the statement
-			generateCode(nodePtr->nodeArr[2]);
-			fprintf(asmFile, "%s: NOOP", tempVarVec.at(nameIndex)); // may have error because of the comment right above this one
-			
-			//cond [ identifier <relational> <exp> ] <stat>
-			break;
-		//case STAT: // DONE
-		//	generateCode(nodePtr->nodeArr[0]); // NONE OF THIS IS NEEDED BECAUSE IT WILL GO AND CALL IT ANYWAY AFTER THE SWITCH CASE 
-		//	break;
+			condHandler(nodePtr);
+			return; // i get the feeling i shouldn't return tho
 		default:
 			printf("Visiting %s\n", nonTerminalNames[nodePtr->label]);
 			break;
@@ -185,69 +173,107 @@ void Tree::generateCode(TreeNode *nodePtr) {
 	}
 }
 
+void Tree::condHandler(TreeNode *nodePtr) {
+	generateCode(nodePtr->nodeArr[1]);
+	int nameIndex = newName(VAR);
+	fprintf(asmFile, "STORE %s\n", tempVarVec.at(nameIndex));
+	fprintf(asmFile, "SUB %s\n", nodePtr->tokenArr[0].lexeme);
+	fprintf(asmFile, "MULT -1\n");
+	nameIndex = newName(LABEL);
+	printRelationalOp(nodePtr, tempVarVec.at(nameIndex));
+	generateCode(nodePtr->nodeArr[2]);
+	fprintf(asmFile, "%s: NOOP\n", tempLabelVec.at(nameIndex));
+	
+}
+
+
 void Tree::rHandler(TreeNode *nodePtr) {
 	Token firstToken = nodePtr->tokenArr[0];
-	if(firstToken.tokenID == LFTPARENDELIM) {
-		//generateCode(nodePtr->nodeArr[0]);
-		fprintf(asmFile, "(exp) still in prog\n");
-	} 
-	else if (firstToken.tokenID == IDTK) {
+	if (firstToken.tokenID == IDTK) {
 		fprintf(asmFile, "LOAD %s\n", firstToken.lexeme);
 	}
 	else if (firstToken.tokenID == NUMTK) {
 		//strcpy(argR, newName(VAR));
 		printf("WRITING LOAD\n");
 		fprintf(asmFile, "LOAD %s\n", firstToken.lexeme);
+	} 
+	else {
+		generateCode(nodePtr->nodeArr[0]);
 	}
 }
 
 void Tree::nHandler(TreeNode *nodePtr) {
 	Token firstToken = nodePtr->tokenArr[0];
+	int indexName;
 
 	if(firstToken.tokenID == OPTK && strcmp(firstToken.lexeme, "-") == 0) {
 
 		if(nodePtr->nodeArr[1]) {
-			fprintf(asmFile, "something - something in prog\n");
+			generateCode(nodePtr->nodeArr[1]);
+			indexName = newName(VAR);
+			fprintf(asmFile, "STORE %s\n", tempVarVec.at(indexName));
+			generateCode(nodePtr->nodeArr[0]);
+			fprintf(asmFile, "SUB %s\n", tempVarVec.at(indexName));
 		} else {
-			fprintf(asmFile, "-something in prog\n");
+			generateCode(nodePtr->nodeArr[0]);
+			indexName = newName(VAR);
+			fprintf(asmFile, "STORE %s\n", tempVarVec.at(indexName));
+			fprintf(asmFile, "LOAD -1\nMULT %s\n", tempVarVec.at(indexName));
 		}
+	}
+	else {
+		generateCode(nodePtr->nodeArr[0]);
 	}
 }
 
 
 void Tree::mHandler(TreeNode *nodePtr) {
 	Token firstToken = nodePtr->tokenArr[0];
+	int indexName;
 
 	if(firstToken.tokenID == OPTK && strcmp(firstToken.lexeme, "+") == 0) {
-		fprintf(asmFile, "+ in prog\n");
+		generateCode(nodePtr->nodeArr[1]); // evaluate <M>
+		indexName = newName(VAR);
+		fprintf(asmFile, "STORE %s\n", tempVarVec.at(indexName));
+		generateCode(nodePtr->nodeArr[0]); // evaluate <N>
+		fprintf(asmFile, "ADD %s\n", tempVarVec.at(indexName));
 	}
 	else {
-		return;
+		generateCode(nodePtr->nodeArr[0]);
 	}
 }
 
 
 void Tree::expHandler(TreeNode *nodePtr) {
 	Token firstToken = nodePtr->tokenArr[0];
+	int indexName;
 
 	if(firstToken.tokenID == DBLESTAR) {
-		fprintf(asmFile, "DBLESTR in prog\n");
+		//<exp>          ->      <M> ** <exp> | <M> // <exp> | <M>
+		generateCode(nodePtr->nodeArr[1]); // evaluate <exp>
+		indexName = newName(VAR);
+		fprintf(asmFile, "STORE %s\n", tempVarVec.at(indexName));
+		generateCode(nodePtr->nodeArr[0]);
+		fprintf(asmFile, "MULT %s\n", tempVarVec.at(indexName));
 	}
 	else if(firstToken.tokenID == DBLESLASH) {
-		fprintf(asmFile, "DBLESLAHS in prog\n");
+		generateCode(nodePtr->nodeArr[1]); // evaluate <exp>
+		indexName = newName(VAR);
+		fprintf(asmFile, "STORE %s\n", tempVarVec.at(indexName));
+		generateCode(nodePtr->nodeArr[0]);
+		fprintf(asmFile, "DIV %s\n", tempVarVec.at(indexName));
+
 	}
 	else {
-		return;
+		generateCode(nodePtr->nodeArr[0]);
 	}
 }
 
 void Tree::printRelationalOp(TreeNode *nodePtr, char *argR) {
 	string str;
-	int indexOfName;
+	int indexOfName = tempLabelVec.size() - 1;
 	TreeNode *relationalNode = nodePtr->nodeArr[0];
 	Token firstToken = relationalNode->tokenArr[0];
-	//argR = newName(LABEL);
-	indexOfName = newName(LABEL);
 	
 
 	// There is only one production that has two tokens for a relational and that's = =

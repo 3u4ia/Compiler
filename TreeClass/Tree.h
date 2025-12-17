@@ -43,6 +43,7 @@ class Tree {
 		void expHandler(TreeNode *);
 		void rHandler(TreeNode *);
 		void nHandler(TreeNode *);
+		void condHandler(TreeNode *);
 		
 		
 
