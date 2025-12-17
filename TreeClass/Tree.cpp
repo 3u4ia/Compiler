@@ -1,9 +1,11 @@
 #include "Tree.h"
 
-typedef enum {VAR, LABEL} nameType;
 static unsigned int LabelCntr = 0;
 static unsigned int VarCntr = 0;
 static char Name[20]; /* for creation of unique names*/
+static char *newName(nameType);
+
+using namespace std;
 
 void Tree::fileInitHelper(FILE **filePtr, const char *extension) {
 	size_t newSize = strlen(baseFileName) + strlen(extension);
@@ -123,6 +125,7 @@ void Tree::handleVarList(TreeNode *varListNode) {
 
 void Tree::generateCode(TreeNode *nodePtr) {
 	char argR[20]; // local storage for temp or label
+	int index;
 	if(!nodePtr) {
 		return;
 	}
@@ -133,24 +136,47 @@ void Tree::generateCode(TreeNode *nodePtr) {
 			break;
 		case PRINT:
 			generateCode(nodePtr->nodeArr[0]);
-			argR = newName(VAR);
-			fprintf(asmFile, "STORE t%s\n", argR);
-			fprintf(asmFile, "WRITE t%s\n", argR);
+			
+			strcpy(argR, newName(VAR));
+			fprintf(asmFile, "STORE \t%s\n", argR);
+			fprintf(asmFile, "WRITE \t%s\n", argR);
+			break;
+		case BLOCK:
+			//generateCode(nodePtr->nodeArr[0]);
+			generateCode(nodePtr->nodeArr[1]);
+			break;
+		case ASSIGN:// DONE
+			generateCode(nodePtr->nodeArr[0]);
+			fprintf(asmFile, "\tSTORE \t%s\n", nodePtr->tokenArr[0].lexeme);
+			break;
+		case EXP:
+			expHandler(nodePtr);
+			break;
+		case M:
+			mHandler(nodePtr);
+			break;
+		case N:
+			nHandler(nodePtr);
+			break;
+		case R:
+			rHandler(nodePtr);
 			break;
 		case COND:
 			generateCode(nodePtr->nodeArr[1]);
-			argR = newName(VAR);
+			//argR = newName(VAR);
+			strcpy(argR, newName(VAR));
 			fprintf(asmFile, "\tSTORE \t%s\n", argR);
 			generateCode(nodePtr->nodeArr[0]);
-			fprintf(asmFile, "SUB %s\n");	
-			char *compOp = getRelationalOp(nodePtr);
+			fprintf(asmFile, "SUB %s\n", argR);
+			printRelationalOp(nodePtr, argR); // maybe need to set argR to a temp variable so that the label can be placed after the statement
+			generateCode(nodePtr->nodeArr[2]);
+			fprintf(asmFile, "%s: NOOP", argR); // may have error because of the comment right above this one
 			
 			//cond [ identifier <relational> <exp> ] <stat>
 			break;
-		case ASSIGN:
-			generateCode(nodePtr->nodeArr[0]);
-			fprintf(out, "\tSTORE \t%s\n", nodePtr->tokenArr[0].lexeme);
-			break;
+		//case STAT: // DONE
+		//	generateCode(nodePtr->nodeArr[0]); // NONE OF THIS IS NEEDED BECAUSE IT WILL GO AND CALL IT ANYWAY AFTER THE SWITCH CASE 
+		//	break;
 		default:
 			printf("Visiting %s\n", nonTerminalNames[nodePtr->label]);
 			break;
@@ -161,24 +187,89 @@ void Tree::generateCode(TreeNode *nodePtr) {
 	}
 }
 
-char *getRelationalOp(TreeNode *nodePtr) {
+void Tree::rHandler(TreeNode *nodePtr) {
+	Token firstToken = nodePtr->tokenArr[0];
+	if(firstToken.tokenID == LFTPARENDELIM) {
+		//generateCode(nodePtr->nodeArr[0]);
+		fprintf(asmFile, "(exp) still in prog\n");
+	} 
+	else if (firstToken.tokenID == IDTK) {
+		fprintf(asmFile, "%s\n", firstToken.lexeme);
+	}
+	else if (firstToken.tokenID == NUMTK) {
+		//strcpy(argR, newName(VAR));
+		fprintf(asmFile, "LOAD %s\n", firstToken.lexeme);
+	}
+}
+
+void Tree::nHandler(TreeNode *nodePtr) {
+	Token firstToken = nodePtr->tokenArr[0];
+
+	if(firstToken.tokenID == OPTK && strcmp(firstToken.lexeme, "-") == 0) {
+
+		if(nodePtr->nodeArr[1]) {
+			fprintf(asmFile, "something - something in prog\n");
+		} else {
+			fprintf(asmFile, "-something in prog\n");
+		}
+	}
+}
+
+
+void Tree::mHandler(TreeNode *nodePtr) {
+	Token firstToken = nodePtr->tokenArr[0];
+
+	if(firstToken.tokenID == OPTK && strcmp(firstToken.lexeme, "+") == 0) {
+		fprintf(asmFile, "+ in prog\n");
+	}
+	else {
+		return;
+	}
+}
+
+
+void Tree::expHandler(TreeNode *nodePtr) {
+	Token firstToken = nodePtr->tokenArr[0];
+
+	if(firstToken.tokenID == DBLESTAR) {
+		fprintf(asmFile, "DBLESTR in prog\n");
+	}
+	else if(firstToken.tokenID == DBLESLASH) {
+		fprintf(asmFile, "DBLESLAHS in prog\n");
+	}
+	else {
+		return;
+	}
+}
+
+void Tree::printRelationalOp(TreeNode *nodePtr, char *argR) {
 	TreeNode *relationalNode = nodePtr->nodeArr[0];
-	char *s = malloc(10 * sizeof(char));
-	Token *firstToken = relationalNode->tokenArr[0];
+	char *s = (char *)malloc(100 * sizeof(char));
+	Token firstToken = relationalNode->tokenArr[0];
+	//argR = newName(LABEL);
+	strcpy(argR, newName(LABEL));
 
 	// There is only one production that has two tokens for a relational and that's = =
 	if(firstToken.tokenID == ASSIGNOPTK && relationalNode->tokenArr[1].tokenID == ASSIGNOPTK) {
-		strcpy(s, "BRZERO");
-		return;
+		fprintf(asmFile, "BRNEG %s\nBRPOS %s", argR, argR);
 	}
 	else if (firstToken.tokenID == LEOPTK) {
-		strcpy(s, "BRZNEG");
-		return;
+		fprintf(asmFile, "BRPOS %s\n", argR);
 	}
 	else if (firstToken.tokenID == GEOPTK) {
-		strcpy(s, "BRZPOS");
-		return;
-	} else if (firstToken.tokenID == 
+		fprintf(asmFile, "BRNEG %s\n", argR);
+	}
+	else if (firstToken.tokenID == LTOPTK) {
+		fprintf(asmFile, "BRZPOS %s\n", argR);
+	}
+	else if (firstToken.tokenID == GTOPTK) {
+		fprintf(asmFile, "BRZNEG %s\n", argR);
+	}
+	else if (firstToken.tokenID == SEMICOLON) { // how should i go about !=???
+		fprintf(asmFile, "BRZERO %s\n", argR); // NEXT PART IS FIGURING OUT IF I SHOULD/HOW TO EVALUATE THE STMT
+	}
+	
+	return;
 }
 
 
@@ -209,17 +300,16 @@ void Tree::handleDefVarList(TreeNode *varListNode) {
 
 
 
-static char *newName(nameType what) {
-	if (what == VAR) // creating new temporary
-		sprintf(Name, "t%d", VarCntr++); /* generate a new label as T0, T1, etc*/
-	else // creating new label
-		sprintf(Name, "L%d", LabelCntr++); /* new labels as L0, L1, etc */
+
+
+
+static char *newName(nameType what) { 
+	if (what==VAR) // creating new temporary
+		sprintf(Name,"t%d",VarCntr++); /* generate a new label as T0, T1, etc */
+	else // creating new Label
+		sprintf(Name,"L%d",LabelCntr++); /* new lables as L0, L1, etc */
 	return(Name);
 }
-
-
-
-
 
 
 
