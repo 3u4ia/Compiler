@@ -1,6 +1,6 @@
 CC = g++ -g3 -O0
 CFLAGS = -g3 -Wall
-TARGET = statSem
+TARGET = compile
 
 OBJS1 = P3.o
 OBJS2 = Scanner.o

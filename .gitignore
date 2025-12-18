@@ -9,3 +9,4 @@ someFile.fs25s1
 statSem
 *.asm
 ./statSem
+compile

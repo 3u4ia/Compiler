@@ -163,6 +163,9 @@ void Tree::generateCode(TreeNode *nodePtr) {
 		case COND:
 			condHandler(nodePtr);
 			return; // i get the feeling i shouldn't return tho
+		case LOOP:
+			loopHandler(nodePtr);
+			return;
 		default:
 			printf("Visiting %s\n", nonTerminalNames[nodePtr->label]);
 			break;
@@ -171,6 +174,24 @@ void Tree::generateCode(TreeNode *nodePtr) {
 	for(int i = 0; i < 3; i++) {
 		generateCode(nodePtr->nodeArr[i]);
 	}
+}
+
+void Tree::loopHandler(TreeNode *nodePtr) {
+	int loopLabelIndex = -1;
+	int varIndex = -1;
+	int loopEscapeIndex = -1;
+	loopLabelIndex = newName(LABEL);
+	fprintf(asmFile, "%s: NOOP\n", tempLabelVec.at(loopLabelIndex));
+	generateCode(nodePtr->nodeArr[1]);
+	varIndex = newName(VAR);
+	fprintf(asmFile, "STORE %s\n", tempVarVec.at(varIndex));
+	fprintf(asmFile, "SUB %s\nMULT -1\n", nodePtr->tokenArr[0].lexeme);
+	loopEscapeIndex = newName(LABEL); // because whatever the most recently pushed label is the out label
+	printRelationalOp(nodePtr, tempVarVec.at(varIndex));
+	generateCode(nodePtr->nodeArr[2]);
+	fprintf(asmFile, "BR %s\n", tempLabelVec.at(loopLabelIndex));
+	fprintf(asmFile, "%s: NOOP\n", tempLabelVec.at(loopEscapeIndex));	
+
 }
 
 void Tree::condHandler(TreeNode *nodePtr) {
@@ -185,6 +206,38 @@ void Tree::condHandler(TreeNode *nodePtr) {
 	fprintf(asmFile, "%s: NOOP\n", tempLabelVec.at(nameIndex));
 	
 }
+
+
+void Tree::printRelationalOp(TreeNode *nodePtr, char *argR) {
+	string str;
+	int indexOfName = tempLabelVec.size() - 1;
+	TreeNode *relationalNode = nodePtr->nodeArr[0];
+	Token firstToken = relationalNode->tokenArr[0];
+	
+
+	// There is only one production that has two tokens for a relational and that's = =
+	if(firstToken.tokenID == ASSIGNOPTK && relationalNode->tokenArr[1].tokenID == ASSIGNOPTK) {
+		fprintf(asmFile, "BRNEG %s\nBRPOS %s", tempLabelVec.at(indexOfName), tempLabelVec.at(indexOfName));
+	}
+	else if (firstToken.tokenID == LEOPTK) {
+		fprintf(asmFile, "BRPOS %s\n", tempLabelVec.at(indexOfName));
+	}
+	else if (firstToken.tokenID == GEOPTK) {
+		fprintf(asmFile, "BRNEG %s\n", tempLabelVec.at(indexOfName));
+	}
+	else if (firstToken.tokenID == LTOPTK) {
+		fprintf(asmFile, "BRZPOS %s\n", tempLabelVec.at(indexOfName));
+	}
+	else if (firstToken.tokenID == GTOPTK) {
+		fprintf(asmFile, "BRZNEG %s\n", tempLabelVec.at(indexOfName));
+	}
+	else if (firstToken.tokenID == SEMICOLON) { // how should i go about !=???
+		fprintf(asmFile, "BRZERO %s\n", tempLabelVec.at(indexOfName)); // NEXT PART IS FIGURING OUT IF I SHOULD/HOW TO EVALUATE THE STMT
+	}
+	
+	return;
+}
+
 
 
 void Tree::rHandler(TreeNode *nodePtr) {
@@ -269,36 +322,6 @@ void Tree::expHandler(TreeNode *nodePtr) {
 	}
 }
 
-void Tree::printRelationalOp(TreeNode *nodePtr, char *argR) {
-	string str;
-	int indexOfName = tempLabelVec.size() - 1;
-	TreeNode *relationalNode = nodePtr->nodeArr[0];
-	Token firstToken = relationalNode->tokenArr[0];
-	
-
-	// There is only one production that has two tokens for a relational and that's = =
-	if(firstToken.tokenID == ASSIGNOPTK && relationalNode->tokenArr[1].tokenID == ASSIGNOPTK) {
-		fprintf(asmFile, "BRNEG %s\nBRPOS %s", tempLabelVec.at(indexOfName), tempLabelVec.at(indexOfName));
-	}
-	else if (firstToken.tokenID == LEOPTK) {
-		fprintf(asmFile, "BRPOS %s\n", tempLabelVec.at(indexOfName));
-	}
-	else if (firstToken.tokenID == GEOPTK) {
-		fprintf(asmFile, "BRNEG %s\n", tempLabelVec.at(indexOfName));
-	}
-	else if (firstToken.tokenID == LTOPTK) {
-		fprintf(asmFile, "BRZPOS %s\n", tempLabelVec.at(indexOfName));
-	}
-	else if (firstToken.tokenID == GTOPTK) {
-		fprintf(asmFile, "BRZNEG %s\n", tempLabelVec.at(indexOfName));
-	}
-	else if (firstToken.tokenID == SEMICOLON) { // how should i go about !=???
-		fprintf(asmFile, "BRZERO %s\n", tempLabelVec.at(indexOfName)); // NEXT PART IS FIGURING OUT IF I SHOULD/HOW TO EVALUATE THE STMT
-	}
-	
-	return;
-}
-
 
 
 void Tree::handleDef(TreeNode *varNode) {
@@ -353,7 +376,19 @@ int Tree::newName(nameType what) {
 
 
 
+void Tree::allocateTempVarStorage() {
+	size_t tempVarSize = tempVarVec.size();
+	for(size_t i = 0; i < tempVarSize; i++) {
+		fprintf(asmFile, "%s 0\n", tempVarVec.at(i));
+	}	
+}
 
+void Tree::allocateVarStorage() {
+	size_t varSize = apiObj.getVecSize();
+	for(size_t i = 0; i < varSize; i++) {
+		fprintf(asmFile, "%s 0\n", apiObj.getVar(i));
+	}
+}
 
 
 

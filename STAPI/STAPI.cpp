@@ -48,3 +48,11 @@ void STAPI::displayVarCount(void) {
 	}
 
 }
+
+size_t STAPI::getVecSize(void) {
+	return varVec.size();
+}
+
+char *STAPI::getVar(size_t index) {
+	return varVec.at(index).var;
+}

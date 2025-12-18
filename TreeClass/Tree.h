@@ -44,6 +44,9 @@ class Tree {
 		void rHandler(TreeNode *);
 		void nHandler(TreeNode *);
 		void condHandler(TreeNode *);
+		void loopHandler(TreeNode *);
+		void allocateTempVarStorage();
+		void allocateVarStorage();
 		
 		
 
@@ -57,18 +60,16 @@ class Tree {
 				baseFileName = fileName; // Allocating new memory and copying the contents of the str
 			}
 			
-			fileInitHelper(&preOrderFile, ".preorder");
 			fileInitHelper(&asmFile, ".asm");
 		}
 		Tree(char *fileName, TreeNode *root) {
 			this->root = root;
 			if(fileName == nullptr) {
-				baseFileName = "out";
+				baseFileName = "a";
 			} else {
 				baseFileName = fileName;
 			}
 
-			fileInitHelper(&preOrderFile, ".preorder");
 			fileInitHelper(&asmFile, ".asm");
 		}
 		~Tree() {
@@ -91,6 +92,8 @@ class Tree {
 		void generateCode() {
 			generateCode(root);
 			fprintf(asmFile, "STOP\n");
+			allocateTempVarStorage();
+			allocateVarStorage();
 		}
 
 		

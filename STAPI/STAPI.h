@@ -15,6 +15,8 @@ class STAPI {
 		bool verify(char *);
 		void checkVars(void);
 		void displayVarCount(void);
+		char *getVar(size_t);
+		size_t getVecSize(void);
 };
 
 
